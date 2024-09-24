@@ -1,24 +1,55 @@
-This is free and unencumbered software released into the public domain.
+https://gist.github.com/unaveragetech/a29c048c8b1ccad062066507bf183d9e
 
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
+ # SDUC License (Small Dev Use Clause)
 
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
+**Copyright (c) 2024 Jesse Winghart**
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+###overview(The SDUC License grants small developers and content creators permission to use, copy, modify, and distribute the software non-commercially. Commercial use is restricted, and requires proper attribution to the authors, Tcoder-beelzebub and The Infi Dev Team.  Key Points: Non-commercial use: Allowed for personal, hobbyist, or creative projects with revenue under $5,000/year. Commercial use: Prohibited unless attribution is given, or a 5% revenue share for projects earning over $50,000/year without proper attribution. Attribution: Must be prominently displayed in product credits, splash screens, or accompanying materials for commercial use. Fair use: Educational, open-source contributions, and non-profit work are exempt, provided they meet the guidelines. Restrictions: No reselling as a standalone product and no misrepresentation of authorship. This license is provided "as-is", without warranties.)
 
-For more information, please refer to <https://unlicense.org>
+
+Permission is hereby granted, free of charge, to any **small developer** or **content creator** obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software with the following conditions:
+
+## 1. **Permitted Use (Non-Commercial)**
+   Small developers and content creators may:
+   - **Use**, **copy**, **modify**, **merge**, **publish**, and **distribute** the Software.
+   - **Sublicense** or **sell** copies of the Software only for **non-commercial**, **personal**, or **creative projects**.
+   
+   ### Definition of **Non-Commercial**:
+   **Non-commercial use** is defined as any use of the Software that does not result in direct or indirect monetary profit or financial compensation, including revenue from ads, sponsorships, or any other monetization strategy. Minor revenue from hobbyist projects or donations under $5,000 per year will not disqualify a project from being considered non-commercial.
+
+   ### Definition of **Small Developer**:
+   A **small developer** is defined as an individual or organization with fewer than 10 employees and/or less than $500,000 USD in annual revenue, excluding hobbyist projects or developers working independently without generating significant revenue.
+
+## 2. **Production Use (Commercial)**
+   - Any use of the Software for **commercial purposes**, **profit generation**, or **production deployment** (including within a business, product, or corporate setting) is **prohibited** unless proper **attribution** is given to:
+     - **Tcoder-beelzebub**
+     - **The Infi Dev Team**
+   
+   ### Clarification on Commercial Use:
+   **Commercial use** refers to any use of the Software that results in financial gain, either directly through sales, services, or subscriptions, or indirectly through monetization mechanisms such as advertisements, sponsorships, affiliate links, or other revenue streams. This includes business use, whether internal (e.g., tools used to generate income) or external (e.g., products offered to customers).
+
+   ### Clarification on Attribution:
+   Attribution must be prominently displayed in project **documentation**, **product credits**, or a **public-facing page** (such as an "About" or "Credits" section of a website, application, or project). For software-based projects, attribution should be placed in a **clearly visible** section, such as a **splash screen**, **footer**, or **settings** page. For physical products or media, attribution must be included in **packaging**, **credits**, or **accompanying material**.
+
+## 3. **Fair Use Clause**
+   The following are considered **Fair Use** under this license:
+   - **Educational Use**: The Software may be freely used in educational settings, including for teaching, research, and academic purposes, provided that proper attribution is included where applicable.
+     - **Definition of Educational Settings**: Educational settings include accredited institutions (e.g., schools, universities), independent educators, and informal educational platforms (e.g., educational YouTube channels), provided that the use is primarily instructional and non-commercial. Monetized educational platforms must provide attribution.
+   - **Open-Source Contributions**: Developers contributing to other open-source projects may use portions of the Software, provided that contributions remain non-commercial and the Software's origin (Tcoder-beelzebub and The Infi Dev Team) is attributed.
+   - **Non-Profit and Charity Work**: Non-profit organizations or charity projects may use the Software without attribution, as long as the project aligns with non-commercial goals and is not monetized.
+
+## 4. **Restrictions**
+   - **Commercial Use Without Attribution**: Any commercial, for-profit, or production-related use of the Software **without attribution** to **Tcoder-beelzebub** or **The Infi Dev Team** is strictly **prohibited**.
+   - **Reselling as a Product**: The Software cannot be repackaged and sold as a standalone product or service without explicit written permission. To request permission, contact **Jesse Winghart** via the preferred communication method listed in the project documentation.
+     - **Clarification on Standalone Product**: A **standalone product** refers to any software, service, or physical product that primarily consists of the Software or a substantial portion of its codebase. Products where the Software is a minor component, used for internal tools, or bundled with other major services are exempt, provided attribution is still given.
+   - **Misrepresentation**: Users of the Software are prohibited from misrepresenting the origin or authorship of the code.
+   - **Monetized Software Without Attribution**: If a project using the Software generates over $50,000 USD in yearly revenue without the required attribution, the developer or company must pay **Jesse Winghart** a sum of **5%** of the total annual revenue from the product containing the Software. This payment must be made within 90 days of the end of the fiscal year in which the revenue threshold is crossed. Failure to comply will result in a revocation of the right to use the Software.
+
+## 5. **Attribution**
+   When attribution is required for commercial or production use, the following must be included in any project documentation, product credits, or visible material: Developed using software created by Tcoder-beelzebub and The Infi Dev Team.
+
+### Clarification on Format:
+The attribution must appear in a visible and legible format, with font size no smaller than the smallest text used in the same section. It should not be buried in terms and conditions or hidden from users. For software applications, the attribution should appear in the **About** or **Credits** section or on the startup screen. For websites, it must appear on an **About** or **Footer** page.
+
+## 6. **Disclaimer**
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
