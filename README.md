@@ -43,56 +43,25 @@ Once the setup is complete, you can run the main script to start the Autonomie e
 ```bash
 python main.py
 ```
-
+```
 ### Available CLI Commands
-- `exit`: Stops the engine and exits the program.
-- `help`: Displays available commands and their descriptions.
 
+- `exit`: Stops the engine and exits the program gracefully. This command will end both the CLI and the Autonomie engine.
+- `help`: Displays a list of all available commands and their descriptions for user guidance.
+- `pause`: Temporarily pauses the Autonomie engine, stopping it from processing screen data. Use this when you want to halt the engine without exiting.
+- `resume`: Resumes the Autonomie engine if it has been paused, allowing it to continue processing screen data.
+- `toggle_logging`: Toggles the logging feature on or off. When logging is disabled, the engine's actions will no longer be printed to the CLI.
+- `clear_logs`: Clears the current logs from the CLI display. Useful if you want to remove clutter and start with a clean log window.
+- `status`: Displays the current status of the Autonomie engine, indicating whether it is running or paused.
+```
+
+```
 ## Contributing
 Feel free to submit issues, suggest features, or contribute code. If you have any ideas or enhancements, please create a pull request!
-
+```
+```
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the sduc License - see the [LICENSE](LICENSE) file for details.
 ```
 
-### `setup.sh`
 
-Here’s a sample `setup.sh` script that automates the installation of the required Python libraries:
-
-```bash
-#!/bin/bash
-
-# Setup script for Autonomie project
-
-echo "Setting up the Autonomie environment..."
-
-# Update and install pip
-echo "Updating package list and installing pip..."
-sudo apt-get update
-sudo apt-get install -y python3-pip
-
-# Install required Python libraries
-echo "Installing required Python libraries from requirements.txt..."
-pip install -r requirements.txt
-
-# Check for Tesseract installation
-if ! command -v tesseract &> /dev/null
-then
-    echo "Tesseract OCR is not installed. Please install it from https://github.com/tesseract-ocr/tesseract"
-else
-    echo "Tesseract OCR is already installed."
-fi
-
-echo "Setup complete! Please ensure Tesseract is in your PATH."
-```
-
-### Instructions for Using `setup.sh`
-1. Save the above script as `setup.sh` in the root of your `autonomie` project directory.
-2. Make the script executable:
-   ```bash
-   chmod +x setup.sh
-   ```
-3. Run the script:
-   ```bash
-   ./setup.sh
-   ```
