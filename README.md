@@ -1,5 +1,3 @@
-Here's a revised and more detailed version of the README.md for your **Autonomie** project, including comprehensive setup instructions and a `setup.sh` script to automate the installation process. 
-
 ### README.md
 
 ```markdown
@@ -98,6 +96,3 @@ echo "Setup complete! Please ensure Tesseract is in your PATH."
    ```bash
    ./setup.sh
    ```
-
-### Final Note
-With these changes, your README.md provides clear guidance on setting up the Autonomie engine, and the `setup.sh` script automates most of the setup process. Let me know if you need any further modifications or additions!
