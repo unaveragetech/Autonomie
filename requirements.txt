@@ -1,3 +1,15 @@
+pynput
 pyautogui
 tkinter
 pillow
+tqdm
+os
+shutil
+pipin
+pkgutil
+datetime
+logging
+subprocess
+csv
+json
+PIL
