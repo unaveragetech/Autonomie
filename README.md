@@ -17,7 +17,7 @@ To set up Autonomie, follow these steps:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/yourusername/autonomie.git
+   git clone https://github.com/unaveragetech/autonomie.git
    cd autonomie
    ```
 
