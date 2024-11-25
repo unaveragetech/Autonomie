@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Setup script for Autonomie project
@@ -14,12 +13,22 @@ sudo apt-get install -y python3-pip
 echo "Installing required Python libraries from requirements.txt..."
 pip install -r requirements.txt
 
-# Check for Tesseract installation
+# Install Tesseract OCR if not already installed
 if ! command -v tesseract &> /dev/null
 then
-    echo "Tesseract OCR is not installed. Please install it from https://github.com/tesseract-ocr/tesseract"
+    echo "Tesseract OCR is not installed. Installing Tesseract..."
+    sudo apt-get install -y tesseract-ocr
 else
     echo "Tesseract OCR is already installed."
 fi
 
-echo "Setup complete! Please ensure Tesseract is in your PATH."
+# Verify Tesseract installation and add to PATH if necessary
+if ! echo "$PATH" | grep -q "$(dirname "$(command -v tesseract)")"; then
+    echo "Adding Tesseract to the PATH..."
+    TESSERACT_DIR=$(dirname "$(command -v tesseract)")
+    echo "export PATH=\$PATH:$TESSERACT_DIR" >> ~/.bashrc
+    export PATH=$PATH:$TESSERACT_DIR
+    echo "Tesseract has been added to the PATH. Restart your terminal or source ~/.bashrc to update."
+fi
+
+echo "Setup complete! Tesseract OCR is installed and available in the PATH."
