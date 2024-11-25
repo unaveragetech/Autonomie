@@ -29,7 +29,7 @@ To set up Autonomie, follow these steps:
 
 3. **Install Tesseract OCR**:
    Ensure that Tesseract OCR is installed on your system. You can download it from [here](https://github.com/tesseract-ocr/tesseract). Follow the instructions on that page for your specific operating system to install Tesseract.
-
+ [Download tesseract-ocr.mirror here ](https://sourceforge.net/projects/tesseract-ocr.mirror/)
 4. **Add Tesseract to Your PATH**:
    After installation, make sure the Tesseract executable is available in your system's PATH. The method to do this varies by OS:
    - **Windows**: Modify the PATH environment variable in System Properties.
