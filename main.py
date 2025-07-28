@@ -1,292 +1,428 @@
 import subprocess
 import sys
 import tkinter as tk
-from tkinter import simpledialog, messagebox, Toplevel
+from tkinter import simpledialog, messagebox, Toplevel, scrolledtext
 from pynput import keyboard, mouse
 import time
 import json
 import os
 import csv
 import logging
-from PIL import ImageGrab
+import requests
+import pytesseract
+import base64
+from PIL import Image, ImageGrab
+from typing import List, Dict, Optional, Union
+from tenacity import retry, stop_after_attempt, wait_exponential
+import platform
+import pygetwindow as gw  # For window tracking
+
+# Configuration constants
+DEFAULT_MODELS = {
+    "chat": "llama3",
+    "vision": "llava",
+    "analysis": "mixtral"
+}
+OLLAMA_BASE_URL = "http://localhost:11434/v1"  # Using OpenAI-compatible endpoint
+SCREENSHOT_DIR = "screenshots"
+CONFIG_FILE = "autonomie_config.json"
+LOG_FILE = "user_emulator.log"
 
 # Set up logging
-logging.basicConfig(filename='user_emulator.log', level=logging.DEBUG)
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-# Function to check and install a package
-def install_package(package):
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+class OllamaManager:
+    """Enhanced Ollama API handler with model management and retry logic."""
+    def __init__(self):
+        self.available_models = self._get_available_models()
+        self._verify_model_availability()
+        self.session = requests.Session()
+        self.session.headers.update({
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ollama"  # Ollama doesn't require auth but follows OpenAI format
+        })
 
-# Check for required packages and install if not present
-try:
-    from PIL import ImageGrab
-except ImportError:
-    install_package('Pillow')
-    from PIL import ImageGrab
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    def _api_call(self, endpoint: str, payload: Dict) -> Dict:
+        url = f"{OLLAMA_BASE_URL}{endpoint}"
+        try:
+            response = self.session.post(url, json=payload, timeout=60)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logging.error(f"API call failed: {str(e)}")
+            raise
 
-# Recorder Class
-class Recorder:
+    def _get_available_models(self) -> List[str]:
+        """Retrieve list of locally available Ollama models."""
+        try:
+            response = requests.get("http://localhost:11434/api/tags", timeout=10)
+            response.raise_for_status()
+            return [model["name"] for model in response.json().get("models", [])]
+        except Exception as e:
+            logging.error(f"Failed to get available models: {str(e)}")
+            return []
+
+    def _verify_model_availability(self):
+        """Ensure required models are available."""
+        for model_type, model_name in DEFAULT_MODELS.items():
+            if model_name not in self.available_models:
+                logging.warning(f"Model {model_name} not found. Attempting to pull...")
+                try:
+                    subprocess.run(["ollama", "pull", model_name], check=True)
+                    self.available_models.append(model_name)
+                except subprocess.CalledProcessError:
+                    logging.error(f"Failed to download model {model_name}")
+                    raise RuntimeError(f"Required model {model_name} not available")
+
+    def chat_completion(self, messages: List[Dict[str, str]], model: str = DEFAULT_MODELS["chat"]) -> str:
+        """Improved chat completion with proper OpenAI-compatible format."""
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7,
+            "stream": False
+        }
+        response = self._api_call("/chat/completions", payload)
+        return response["choices"][0]["message"]["content"]
+
+    def vision_analysis(self, image_paths: List[str], prompt: str) -> str:
+        """Perform multimodal analysis using vision model."""
+        content = [{"type": "text", "text": prompt}]
+        for path in image_paths:
+            try:
+                with open(path, "rb") as image_file:
+                    base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+                content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{base64_image}"}
+                })
+            except Exception as e:
+                logging.warning(f"Image load failed for {path}: {str(e)}")
+        payload = {
+            "model": DEFAULT_MODELS["vision"],
+            "messages": [{"role": "user", "content": content}],
+            "temperature": 0.5,
+            "max_tokens": 1000
+        }
+        response = self._api_call("/chat/completions", payload)
+        return response["choices"][0]["message"]["content"]
+
+class ContextTracker:
+    """Advanced context tracking for application and window states."""
+    def __init__(self):
+        self.current_application = None
+        self.active_window = None
+        self.last_interaction = None
+        self.platform = platform.system()
+
+    def update_context(self):
+        try:
+            if self.platform == "Windows":
+                active_window = gw.getActiveWindow()
+                self.active_window = active_window.title if active_window else "Unknown"
+                self.current_application = active_window.owner if active_window else "Unknown"
+            else:
+                # Implement macOS/Linux specific tracking if needed
+                self.active_window = "Unsupported Platform"
+                self.current_application = "Unsupported Platform"
+        except Exception as e:
+            logging.warning(f"Window tracking failed: {str(e)}")
+            self.active_window = "Error"
+            self.current_application = "Error"
+
+        self.last_interaction = time.time()
+
+class EnhancedRecorder:
+    """Improved recorder with event timing and contextual capture."""
     def __init__(self):
         self.actions = []
-        self.mouse_listener = None
-        self.keyboard_listener = None
-        self.hold_keys = set()  # Track currently held keys
-        self.screenshot_dir = "screenshots"  # Directory for screenshots
-        self.screenshot_enabled = False  # Toggle for screenshot capturing
-        if not os.path.exists(self.screenshot_dir):
-            os.makedirs(self.screenshot_dir)
+        self.listeners = []
+        self.screenshot_dir = SCREENSHOT_DIR
+        self._init_directories()
+        self.ollama = OllamaManager()
+        self.context = ContextTracker()
 
-    def record_action(self, event_type, details, category=None):
-        timestamp = time.time()
-        self.actions.append((event_type, details, timestamp, category))
-        if self.screenshot_enabled:
-            self.capture_screenshot(event_type, details)  # Capture screenshot if enabled
+    def _init_directories(self):
+        os.makedirs(self.screenshot_dir, exist_ok=True)
 
     def start_recording(self):
-        self.mouse_listener = mouse.Listener(on_click=self.on_click, on_move=self.on_move, on_scroll=self.on_scroll)
-        self.keyboard_listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
-        self.mouse_listener.start()
-        self.keyboard_listener.start()
+        """Start listening for input events with precise timing."""
+        self.listeners = [
+            mouse.Listener(on_move=self.on_move, on_click=self.on_click, on_scroll=self.on_scroll),
+            keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        ]
+        for listener in self.listeners:
+            listener.start()
 
     def stop_recording(self):
-        self.mouse_listener.stop()
-        self.keyboard_listener.stop()
+        """Stop all input listeners."""
+        for listener in self.listeners:
+            if listener.is_alive():
+                listener.stop()
 
-    def on_click(self, x, y, button, pressed):
-        category = simpledialog.askstring("Category", "Enter action category:")
-        action = ('mouse_click', (x, y, button.name, pressed))
-        self.record_action(*action, category)
-        self.show_action_popup(f"Mouse Click: {button.name} at ({x}, {y}) - {'Pressed' if pressed else 'Released'}")
+    def record_event(self, event_type: str, details: Dict, category: str = None):
+        """Record an event with full contextual information."""
+        self.context.update_context()
+        event = {
+            "timestamp": time.time(),
+            "type": event_type,
+            "details": details,
+            "category": category,
+            "context": {
+                "application": self.context.current_application,
+                "window": self.context.active_window,
+                "time_since_last": time.time() - self.context.last_interaction if self.context.last_interaction else 0
+            }
+        }
+        self.actions.append(event)
+        self._analyze_event(event)
 
-    def on_move(self, x, y):
-        category = simpledialog.askstring("Category", "Enter action category:")
-        action = ('mouse_move', (x, y))
-        self.record_action(*action, category)
-        self.show_action_popup(f"Mouse Moved to: ({x}, {y})")
+    def _analyze_event(self, event: Dict):
+        """Perform real-time analysis of captured events."""
+        screenshot_path = self._capture_screenshot(event)
+        if event["type"] == "text_input":
+            analysis = self.ollama.chat_completion([{
+                "role": "user",
+                "content": f"Analyze this user input: {event['details']['text']}. "
+                           "Provide sentiment and potential intent."
+            }])
+            event["analysis"] = analysis
+        elif event["type"] in ["mouse_click", "key_press"]:
+            if screenshot_path:
+                analysis = self.ollama.vision_analysis([screenshot_path], f"Analyze this {event['type']} event.")
+                event["visual_analysis"] = analysis
 
-    def on_scroll(self, x, y, dx, dy):
-        category = simpledialog.askstring("Category", "Enter action category:")
-        action = ('mouse_scroll', (x, y, dx, dy))
-        self.record_action(*action, category)
-        self.show_action_popup(f"Mouse Scroll at: ({x}, {y}), delta: ({dx}, {dy})")
+    def _capture_screenshot(self, event: Dict) -> Optional[str]:
+        """Capture contextual screenshot with intelligent framing."""
+        try:
+            filename = f"{self.screenshot_dir}/{event['timestamp']}_{event['type']}.png"
+            with ImageGrab.grab() as screenshot:
+                screenshot.save(filename)
+            return filename
+        except Exception as e:
+            logging.error(f"Screenshot capture failed: {str(e)}")
+            return None
 
-    def on_press(self, key):
-        category = simpledialog.askstring("Category", "Enter action category:")
-        if hasattr(key, 'char') and key.char:
-            action = ('key_press', str(key.char))
-        else:
-            action = ('key_press', str(key))  # Handle special keys
-        self.record_action(*action, category)
-        self.hold_keys.add(key)  # Track held keys
-        self.show_action_popup(f"Key Pressed: {str(key)}")
+    # Event handlers with improved contextual recording
+    def on_move(self, x: int, y: int):
+        self.record_event("mouse_move", {"x": x, "y": y})
 
-    def on_release(self, key):
-        category = simpledialog.askstring("Category", "Enter action category:")
-        action = ('key_release', str(key))
-        self.record_action(*action, category)
-        self.hold_keys.discard(key)  # Remove from held keys
-        self.show_action_popup(f"Key Released: {str(key)}")
+    def on_click(self, x: int, y: int, button: mouse.Button, pressed: bool):
+        self.record_event(
+            "mouse_click",
+            {"x": x, "y": y, "button": button.name, "state": "pressed" if pressed else "released"}
+        )
 
-    def capture_screenshot(self, event_type, details):
-        """ Capture a screenshot of the full screen or an area around the mouse depending on the event. """
-        screenshot_file = f"{self.screenshot_dir}/screenshot_{event_type}_{int(time.time())}.png"
-        if event_type == 'mouse_move' or event_type == 'mouse_click':
-            x, y = details[:2]
-            screenshot_area = (x - 50, y - 50, x + 50, y + 50)  # Capture area around the mouse
-            screenshot = ImageGrab.grab(bbox=screenshot_area)
-        else:
-            screenshot = ImageGrab.grab()  # Full screen capture
-        screenshot.save(screenshot_file)
-        logging.info(f'Screenshot saved: {screenshot_file}')
+    def on_scroll(self, x: int, y: int, dx: int, dy: int):
+        self.record_event("mouse_scroll", {"x": x, "y": y, "dx": dx, "dy": dy})
 
-    def get_actions(self):
-        return self.actions
+    def on_press(self, key: keyboard.Key):
+        try:
+            char = key.char
+        except AttributeError:
+            char = str(key)
+        self.record_event("key_press", {"key": char})
 
-    def clear_actions(self):
-        self.actions = []
+    def on_release(self, key: keyboard.Key):
+        try:
+            char = key.char
+        except AttributeError:
+            char = str(key)
+        self.record_event("key_release", {"key": char})
 
-    def toggle_screenshots(self):
-        self.screenshot_enabled = not self.screenshot_enabled
-        return self.screenshot_enabled
-
-    def show_action_popup(self, message):
-        if not hasattr(self, 'popup'):
-            self.popup = Toplevel()
-            self.popup.title("Recording Actions")
-            self.popup.geometry("300x200")
-            self.popup.protocol("WM_DELETE_WINDOW", self.close_popup)
-
-            self.text_area = tk.Text(self.popup)
-            self.text_area.pack(expand=True, fill='both')
-
-            self.close_button = tk.Button(self.popup, text="Stop Recording", command=self.close_popup)
-            self.close_button.pack(pady=10)
-
-        self.text_area.insert(tk.END, message + '\n')
-        self.text_area.see(tk.END)  # Auto-scroll to the bottom
-
-    def close_popup(self):
-        self.popup.destroy()
-        del self.popup  # Allow for a new popup to be created
-
-# Player Class
-class Player:
+class EnhancedGUI(tk.Tk):
+    """Modern GUI with improved user experience and real-time feedback."""
     def __init__(self):
+        super().__init__()
+        self.title("Autonomie Pro")
+        self.geometry("800x600")
+        self.recorder = EnhancedRecorder()
+        self.ollama = OllamaManager()
+        self._create_widgets()
+        self._setup_keybindings()
+        self.update_status("Ready")
         self.mouse_controller = mouse.Controller()
         self.keyboard_controller = keyboard.Controller()
 
-    def playback(self, actions):
-        for action in actions:
-            event_type, details, _timestamp, _category = action
-            if event_type == 'mouse_click':
-                x, y, button, pressed = details
-                self.mouse_controller.position = (x, y)
-                if pressed:
-                    self.mouse_controller.click(button)
-            elif event_type == 'mouse_move':
-                x, y = details
-                self.mouse_controller.position = (x, y)
-            elif event_type == 'mouse_scroll':
-                x, y, dx, dy = details
-                self.mouse_controller.position = (x, y)
-                self.mouse_controller.scroll(dx, dy)
-            elif event_type == 'key_press':
-                self.keyboard_controller.press(details)
-            elif event_type == 'key_release':
-                self.keyboard_controller.release(details)
-
-# TaskManager Class
-class TaskManager:
-    @staticmethod
-    def save_task(actions, filename):
-        with open(filename, 'w') as f:
-            json.dump(actions, f)
-
-    @staticmethod
-    def load_task(filename):
-        with open(filename, 'r') as f:
-            actions = json.load(f)
-        return actions
-
-    @staticmethod
-    def export_to_csv(actions, filename):
-        with open(filename, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['Event Type', 'Details', 'Timestamp', 'Category'])
-            for action in actions:
-                writer.writerow(action)
-
-    @staticmethod
-    def import_from_csv(filename):
-        actions = []
-        with open(filename, 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            next(reader)  # Skip header
-            for row in reader:
-                event_type = row[0]
-                details = json.loads(row[1])  # Assuming details are JSON encoded
-                timestamp = float(row[2])
-                category = row[3]
-                actions.append((event_type, details, timestamp, category))
-        return actions
-
-# GUI Class with Keybinds and Status Bar
-class UserEmulatorGUI:
-    def __init__(self, master):
-        self.master = master
-        master.title("User Emulator")
-
-        self.recorder = Recorder()
-        self.player = Player()
-        self.task_manager = TaskManager()
-
-        self.create_widgets()
-        self.create_keybindings()
-        self.update_status()
-
-    def create_widgets(self):
-        self.record_button = tk.Button(self.master, text="Start Recording", command=self.start_recording)
-        self.record_button.pack()
-
-        self.stop_button = tk.Button(self.master, text="Stop Recording", command=self.stop_recording)
-        self.stop_button.pack()
-
-        self.save_button = tk.Button(self.master, text="Save Task", command=self.save_task)
-        self.save_button.pack()
-
-        self.load_button = tk.Button(self.master, text="Load Task", command=self.load_task)
-        self.load_button.pack()
-
-        self.export_button = tk.Button(self.master, text="Export to CSV", command=self.export_to_csv)
-        self.export_button.pack()
-
-        self.import_button = tk.Button(self.master, text="Import from CSV", command=self.import_from_csv)
-        self.import_button.pack()
-
-        self.toggle_screenshot_button = tk.Button(self.master, text="Toggle Screenshots", command=self.toggle_screenshots)
-        self.toggle_screenshot_button.pack()
-
-        self.playback_button = tk.Button(self.master, text="Playback Task", command=self.playback_task)
-        self.playback_button.pack()
-
-        self.status_bar = tk.Label(self.master, text="Status: Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W)
+    def _create_widgets(self):
+        # Control Panel
+        control_frame = tk.Frame(self)
+        control_frame.pack(fill=tk.X)
+        self.record_btn = tk.Button(control_frame, text="⏺ Start Recording", command=self.toggle_recording)
+        self.record_btn.pack(side=tk.LEFT, padx=5)
+        self.playback_btn = tk.Button(control_frame, text="▶ Playback", command=self.playback)
+        self.playback_btn.pack(side=tk.LEFT, padx=5)
+        # Analysis Panel
+        analysis_frame = tk.Frame(self)
+        analysis_frame.pack(fill=tk.BOTH, expand=True)
+        self.conversation_log = scrolledtext.ScrolledText(analysis_frame, state='disabled')
+        self.conversation_log.pack(fill=tk.BOTH, expand=True)
+        # Status Bar
+        self.status_bar = tk.Label(self, text="", bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-    def create_keybindings(self):
-        self.master.bind("<Control-r>", lambda event: self.start_recording())
-        self.master.bind("<Control-s>", lambda event: self.stop_recording())
-        self.master.bind("<Control-p>", lambda event: self.playback_task())
+    def _setup_keybindings(self):
+        self.bind("<Control-r>", lambda e: self.toggle_recording())
+        self.bind("<Control-p>", lambda e: self.playback())
+        self.bind("<Control-q>", lambda e: self.quit())
 
-    def update_status(self, status_text="Ready"):
-        self.status_bar.config(text=f"Status: {status_text}")
+    def toggle_recording(self):
+        if not self.recorder.listeners or not any(l.is_alive() for l in self.recorder.listeners):
+            self.recorder.start_recording()
+            self.record_btn.config(text="⏹ Stop Recording", fg="red")
+            self.update_status("Recording...")
+        else:
+            self.recorder.stop_recording()
+            self.record_btn.config(text="⏺ Start Recording", fg="black")
+            self.update_status("Recording stopped")
 
-    def start_recording(self):
-        self.recorder.start_recording()
-        self.update_status("Recording...")
+    def playback(self):
+        """Reconstruct recorded actions using neural network analysis."""
+        if not self.recorder.actions:
+            messagebox.showwarning("Playback", "No recorded actions to play back.")
+            return
 
-    def stop_recording(self):
-        self.recorder.stop_recording()
-        self.update_status("Stopped")
+        self.update_status("Analyzing recorded actions...")
+        try:
+            # Use the vision model to validate the current screen state
+            screenshot_path = self._capture_current_screenshot()
+            if not screenshot_path:
+                raise RuntimeError("Failed to capture screenshot for playback validation.")
 
-    def save_task(self):
-        filename = simpledialog.askstring("Save Task", "Enter filename:")
-        if filename:
-            self.task_manager.save_task(self.recorder.get_actions(), filename + ".json")
-            self.update_status(f"Task saved as {filename}.json")
+            # Analyze the current screen state
+            analysis_prompt = (
+                "Analyze this screenshot and determine if it matches the expected "
+                "application state for playback."
+            )
+            analysis_result = self.ollama.vision_analysis([screenshot_path], analysis_prompt)
+            logging.info(f"Playback validation result: {analysis_result}")
 
-    def load_task(self):
-        filename = simpledialog.askstring("Load Task", "Enter filename:")
-        if filename:
-            actions = self.task_manager.load_task(filename + ".json")
-            self.recorder.clear_actions()
-            self.recorder.actions = actions
-            self.update_status(f"Task loaded from {filename}.json")
+            # Check if the analysis indicates readiness for playback
+            if "ready" not in analysis_result.lower():
+                messagebox.showwarning(
+                    "Playback",
+                    "The current screen state does not match the expected state for playback."
+                )
+                self.update_status("Playback aborted due to mismatched screen state.")
+                return
 
-    def export_to_csv(self):
-        filename = simpledialog.askstring("Export to CSV", "Enter filename:")
-        if filename:
-            self.task_manager.export_to_csv(self.recorder.get_actions(), filename + ".csv")
-            self.update_status(f"Task exported as {filename}.csv")
+            # Proceed with playback
+            self.update_status("Starting playback...")
+            playback_thread = threading.Thread(target=self._execute_playback)
+            playback_thread.start()
 
-    def import_from_csv(self):
-        filename = simpledialog.askstring("Import from CSV", "Enter filename:")
-        if filename:
-            actions = self.task_manager.import_from_csv(filename + ".csv")
-            self.recorder.clear_actions()
-            self.recorder.actions = actions
-            self.update_status(f"Task imported from {filename}.csv")
+        except Exception as e:
+            logging.error(f"Playback failed: {str(e)}")
+            messagebox.showerror("Error", f"Playback failed: {str(e)}")
+            self.update_status("Playback failed.")
 
-    def playback_task(self):
-        self.player.playback(self.recorder.get_actions())
-        self.update_status("Playing back...")
+    def _capture_current_screenshot(self) -> Optional[str]:
+        """Capture the current screen state for validation."""
+        try:
+            filename = f"{self.recorder.screenshot_dir}/playback_validation_{time.time()}.png"
+            with ImageGrab.grab() as screenshot:
+                screenshot.save(filename)
+            return filename
+        except Exception as e:
+            logging.error(f"Screenshot capture failed: {str(e)}")
+            return None
 
-    def toggle_screenshots(self):
-        is_enabled = self.recorder.toggle_screenshots()
-        status = "enabled" if is_enabled else "disabled"
-        self.update_status(f"Screenshots {status}")
+    def _execute_playback(self):
+        """Execute recorded actions with precise timing."""
+        try:
+            last_timestamp = None
+            for action in self.recorder.actions:
+                # Calculate delay between events
+                if last_timestamp:
+                    delay = action["timestamp"] - last_timestamp
+                    time.sleep(max(0, delay))  # Ensure non-negative delay
+                last_timestamp = action["timestamp"]
 
+                # Reconstruct the action
+                event_type = action["type"]
+                details = action["details"]
+
+                if event_type == "mouse_move":
+                    self.mouse_controller.position = (details["x"], details["y"])
+                elif event_type == "mouse_click":
+                    button = mouse.Button.left if details["button"] == "left" else mouse.Button.right
+                    if details["state"] == "pressed":
+                        self.mouse_controller.press(button)
+                    else:
+                        self.mouse_controller.release(button)
+                elif event_type == "mouse_scroll":
+                    self.mouse_controller.scroll(details["dx"], details["dy"])
+                elif event_type == "key_press":
+                    key = self._map_key(details["key"])
+                    self.keyboard_controller.press(key)
+                elif event_type == "key_release":
+                    key = self._map_key(details["key"])
+                    self.keyboard_controller.release(key)
+
+            self.update_status("Playback completed successfully.")
+        except Exception as e:
+            logging.error(f"Playback execution failed: {str(e)}")
+            self.update_status("Playback failed during execution.")
+
+    def _map_key(self, key_str: str) -> Union[keyboard.Key, str]:
+        """Map string representation of keys to pynput Key objects."""
+        special_keys = {
+            "Key.enter": keyboard.Key.enter,
+            "Key.space": keyboard.Key.space,
+            "Key.backspace": keyboard.Key.backspace,
+            "Key.tab": keyboard.Key.tab,
+            "Key.shift": keyboard.Key.shift,
+            "Key.ctrl": keyboard.Key.ctrl,
+            "Key.alt": keyboard.Key.alt,
+            "Key.cmd": keyboard.Key.cmd,
+            "Key.esc": keyboard.Key.esc,
+            "Key.up": keyboard.Key.up,
+            "Key.down": keyboard.Key.down,
+            "Key.left": keyboard.Key.left,
+            "Key.right": keyboard.Key.right,
+        }
+        return special_keys.get(key_str, key_str)
+
+    def update_status(self, message: str):
+        self.status_bar.config(text=f"Status: {message}")
+        self.update_idletasks()
+
+    def log_conversation(self, message: str, is_user: bool = True):
+        self.conversation_log.config(state='normal')
+        prefix = "You: " if is_user else "AI: "
+        self.conversation_log.insert(tk.END, prefix + message + "\n")
+        self.conversation_log.config(state='disabled')
+        self.conversation_log.see(tk.END)
+
+    def start_chat(self):
+        user_input = simpledialog.askstring("Chat", "Enter your message:")
+        if user_input:
+            self.log_conversation(user_input)
+            response = self.ollama.chat_completion([{
+                "role": "user",
+                "content": user_input
+            }])
+            self.log_conversation(response, is_user=False)
+
+def validate_environment():
+    """Check for required dependencies and environment setup."""
+    try:
+        subprocess.run(["ollama", "--version"], check=True, capture_output=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        logging.error("Ollama not installed or not in PATH")
+        raise RuntimeError("Ollama not found. Please install and configure Ollama.")
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    gui = UserEmulatorGUI(root)
-    root.mainloop()
+    try:
+        validate_environment()
+        app = EnhancedGUI()
+        app.mainloop()
+    except Exception as e:
+        logging.critical(f"Application failed: {str(e)}", exc_info=True)
+        messagebox.showerror("Critical Error", "Application encountered a critical error")
+        sys.exit(1)
