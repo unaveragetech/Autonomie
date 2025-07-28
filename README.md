@@ -1,67 +1,216 @@
-### README.md
 
-```markdown
-# Autonomie - User Interaction Engine
+# 🧬 Autonomie – The Digital You
 
-## Overview
-Autonomie is a Python-based project designed to observe and learn from user activity on the screen. The engine captures and recognizes various objects and text using OpenCV and Tesseract, allowing it to remember and interact with UI elements across multiple sessions. This capability makes Autonomie a useful tool for automating repetitive tasks based on user behavior.
+[![Build Status](https://img.shields.io/github/actions/workflow/status/unaveragetech/autonomie/python-app.yml?branch=main)](https://github.com/unaveragetech/autonomie/actions)
+[![License: SDUC](https://img.shields.io/badge/license-SDUC-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Open Issues](https://img.shields.io/github/issues/unaveragetech/autonomie)](https://github.com/unaveragetech/autonomie/issues)
 
-## Features
-- **Object Recognition**: Automatically detects UI elements such as buttons, labels, icons, and more.
-- **Text Recognition**: Utilizes Optical Character Recognition (OCR) to extract text from recognized screen elements.
-- **Memory Persistence**: Remembers recognized objects across sessions, assigning unique IDs to recurring elements.
-- **Interactive CLI Interface**: A command-line interface that logs actions and allows users to control the engine's behavior.
+---
 
-## Installation
-To set up Autonomie, follow these steps:
+## 🧠 What Is Autonomie?
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/unaveragetech/autonomie.git
-   cd autonomie
-   ```
+**Autonomie** is a self-hosted system that watches how you interact with your computer and slowly learns to act on your behalf.
 
-2. **Run the Setup Script**:
-   Execute the `setup.sh` script to install the necessary dependencies. This script handles library installations and prepares the environment.
-   ```bash
-   bash setup.sh
-   ```
+It doesn't ask you to write scripts or hardcode macros.  
+It watches, remembers, and *evolves* based on how **you** use your machine.
 
-3. **Install Tesseract OCR**:
-   Ensure that Tesseract OCR is installed on your system. You can download it from [here](https://github.com/tesseract-ocr/tesseract). Follow the instructions on that page for your specific operating system to install Tesseract.
- [Download tesseract-ocr.mirror here ](https://sourceforge.net/projects/tesseract-ocr.mirror/)
-4. **Add Tesseract to Your PATH**:
-   After installation, make sure the Tesseract executable is available in your system's PATH. The method to do this varies by OS:
-   - **Windows**: Modify the PATH environment variable in System Properties.
-   - **Linux/Mac**: Add the Tesseract installation path to your `.bashrc` or `.bash_profile`:
-     ```bash
-     export PATH=$PATH:/path/to/tesseract
-     ```
+> Autonomie's goal is simple: **your PC should already know what you were going to do.**
 
-## Usage
-Once the setup is complete, you can run the main script to start the Autonomie engine:
+This is not traditional automation. This is the beginning of a **digital self** — your second set of eyes, hands, and intent living inside your OS.
+
+---
+
+## 🌍 Why Autonomie Matters
+
+### 🏭 The Problem
+
+Today, all advanced user modeling is controlled by corporations:
+
+- They predict what you’ll click — but only to sell you something.
+- They record your behavior — but never share what they learn.
+- They build personal AI — but it's *not yours*.
+
+You’re being studied by your machine, yet **you have no access to the brain behind the glass**.
+
+---
+
+### 🧑‍💻 Our Belief
+
+You deserve the same power — on your terms.
+
+Autonomie empowers you with a system that:
+
+- Observes your real behaviors (no manual programming)
+- Learns visually from what you see
+- Remembers your interactions
+- Evolves your preferences
+- Lives *locally* and *only learns from you*
+
+This is about **freedom, agency, and control** in your digital life.
+
+---
+
+## 🎯 Our Vision: A Digital Human Interface
+
+Autonomie is a step toward building the first true **digital human interface** — a machine that mimics your real interactions in every sense.
+
+It’s not just automation. It’s a replication of **how** and **why** you interact.
+
+| Human Trait            | Autonomie Counterpart                                      |
+|------------------------|-------------------------------------------------------------|
+| Vision                 | Screenshot analysis + object detection + OCR               |
+| Memory                 | Visual memory graph with element IDs and frequency         |
+| Touch / Movement       | Mouse path simulation, wheel scrolling, timing variance    |
+| Attention              | Top-down screen parsing and UI relevance heuristics        |
+| Decision Making        | Action prediction based on past behavior (in development)  |
+| Emotion/Bias           | Weighted action preference by time of day, hesitation, etc |
+
+> The computer shouldn't just run tasks. It should run *your intent*.
+
+---
+
+## 🧩 CAPTCHA, Authenticity & Human Simulation
+
+Avoiding CAPTCHA is **not the goal**, but it is a **necessary obstacle** for truly human interfaces.
+
+Autonomie avoids API-level "captcha solvers" because they:
+
+- Compromise your data
+- Violate terms of service
+- Use third-party behavioral data
+
+Instead, Autonomie achieves authenticity by **actually behaving like a human**:
+
+### ✅ Human Simulation Techniques
+
+- **Top-down visual scanning**
+- **Scroll wheel behavior with irregular timing**
+- **Mouse movement that includes acceleration, wobble, and pauses**
+- **Click hesitation** and **overshoot correction**
+- **Response to visible elements only**, just like human vision
+- **Live OCR** to mimic reading text, not querying metadata
+
+If all else fails, Autonomie uses **vision + interaction delay** to legitimately pass human checks — not because it's faking, but because it's behaving naturally enough to **be treated like you.**
+
+> If a CAPTCHA can’t tell the difference, maybe there *isn’t* one.
+
+---
+
+## ✨ Features
+
+### ✅ Core
+
+- **UI Object Detection** – Detect buttons, labels, checkboxes, and more using OpenCV.
+- **Text Recognition (OCR)** – Read visible screen text with Tesseract.
+- **Visual Memory System** – Recognize elements across sessions with hashed visual IDs.
+- **Live CLI** – Pause/resume/inspect engine state in real-time.
+
+### 🧪 Experimental
+
+- **Behavior Logging** – Record user behavior for pattern analysis (non-invasive).
+- **Scroll Logic** – Dynamic wheel behavior with noise functions.
+- **Mouse Movement Simulation** – Realistic pathing and speed variability.
+
+### 🛣 Planned
+
+- **Intent Modeling** – Learn patterns like “what I usually do after I open this app.”
+- **Task Recognition** – Notice and offer to automate common behavior chains.
+- **Autonomous Response** – Let the system take action when confidence is high.
+- **Neural Agent Mode** – Use lightweight LLMs to ask: *“What would you do here?”*
+
+---
+
+## 🛠 Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/unaveragetech/autonomie.git
+cd autonomie
+````
+
+### 2. Run the Setup Script
+
+This installs required Python packages and prepares the local environment:
+
+```bash
+bash setup.sh
+```
+
+### 3. Install Tesseract OCR
+
+* [Official Install Instructions](https://github.com/tesseract-ocr/tesseract)
+* [Mirror Download via SourceForge](https://sourceforge.net/projects/tesseract-ocr.mirror/)
+
+### 4. Add Tesseract to PATH
+
+* **Windows**: Add install path to Environment Variables.
+* **Linux/macOS**:
+
+```bash
+export PATH=$PATH:/path/to/tesseract
+```
+
+---
+
+## ▶️ Running the Engine
+
+Start the main interface:
+
 ```bash
 python main.py
 ```
-```
-### Available CLI Commands
 
-- `exit`: Stops the engine and exits the program gracefully. This command will end both the CLI and the Autonomie engine.
-- `help`: Displays a list of all available commands and their descriptions for user guidance.
-- `pause`: Temporarily pauses the Autonomie engine, stopping it from processing screen data. Use this when you want to halt the engine without exiting.
-- `resume`: Resumes the Autonomie engine if it has been paused, allowing it to continue processing screen data.
-- `toggle_logging`: Toggles the logging feature on or off. When logging is disabled, the engine's actions will no longer be printed to the CLI.
-- `clear_logs`: Clears the current logs from the CLI display. Useful if you want to remove clutter and start with a clean log window.
-- `status`: Displays the current status of the Autonomie engine, indicating whether it is running or paused.
-```
+---
 
-```
-## Contributing
-Feel free to submit issues, suggest features, or contribute code. If you have any ideas or enhancements, please create a pull request!
-```
-```
-## License
-This project is licensed under the sduc License - see the [LICENSE](LICENSE) file for details.
-```
+## ⌨️ CLI Commands
 
+| Command          | Description                                 |
+| ---------------- | ------------------------------------------- |
+| `exit`           | Safely shuts down the engine                |
+| `pause`          | Temporarily stops activity without quitting |
+| `resume`         | Continues activity after a pause            |
+| `status`         | Prints current engine state                 |
+| `toggle_logging` | Enable/disable console action logs          |
+| `clear_logs`     | Clears the CLI output for easier reading    |
+| `help`           | Lists all available commands                |
+
+---
+
+## 🤝 Contributing
+
+This project is early-stage but ambitious. We’re building a prototype of the future — and we want **you** to help shape it.
+
+Ways to contribute:
+
+* ⭐ Star the repo to support visibility
+* 🐛 Report bugs or feature requests
+* 🔧 Submit PRs with improvements or integrations
+* 📣 Share the vision with others in open-source, privacy, and AI communities
+
+Want to help design the UI layer?
+Or plug in your own vision model?
+Or build the first plugin system?
+
+> This is your invitation. Let’s build *you* — in code.
+
+---
+
+## 📜 License
+
+This project is licensed under the **SDUC License** (Self-Directed Use & Contribution). See [LICENSE](LICENSE) for terms.
+
+---
+
+## 📢 Final Note
+
+**Autonomie** is not a tool. It's a statement:
+
+> You should own the system that learns you.
+
+If corporations build AI to predict your every move, you should have that power too — on your desktop, with your data, and under your control.
+
+Let’s build the digital self.
+One screen, one mouse movement, one learned habit at a time.
 
